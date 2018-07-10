@@ -1,0 +1,82 @@
+hash: 17143dfc9a7ec40e3db25f3a22a9c0e09068f5e980fa7f612882b1c9890365e0
+updated: 2018-07-09T19:33:00.659492-07:00
+imports:
+- name: github.com/golang/protobuf
+  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
+  subpackages:
+  - jsonpb
+  - proto
+  - ptypes
+  - ptypes/any
+  - ptypes/duration
+  - ptypes/struct
+  - ptypes/timestamp
+- name: github.com/grpc-ecosystem/go-grpc-middleware
+  version: c250d6563d4d4c20252cd865923440e829844f4e
+- name: github.com/grpc-ecosystem/grpc-gateway
+  version: 92583770e3f01b09a0d3e9bdf64321d8bebd48f2
+  subpackages:
+  - runtime
+  - runtime/internal
+  - utilities
+- name: github.com/justinas/alice
+  version: 03f45bd4b7dad4734bc4620e46a35789349abb20
+- name: github.com/rs/zerolog
+  version: 77db4b4f350e31be66a57c332acb7721cf9ff9bb
+  subpackages:
+  - internal/cbor
+  - internal/json
+  - log
+- name: github.com/stevepartridge/go
+  version: f18d838882ab0c193c74e218af585c2547249456
+  subpackages:
+  - file
+- name: golang.org/x/net
+  version: 1c05540f6879653db88113bc4a2b70aec4bd491f
+  subpackages:
+  - context
+  - http2
+  - http2/hpack
+  - idna
+  - internal/timeseries
+  - lex/httplex
+  - trace
+- name: golang.org/x/text
+  version: d5a9226ed7dd70cade6ccae9d37517fe14dd9fee
+  subpackages:
+  - secure/bidirule
+  - transform
+  - unicode/bidi
+  - unicode/norm
+- name: google.golang.org/genproto
+  version: a8101f21cf983e773d0c1133ebc5424792003214
+  subpackages:
+  - googleapis/rpc/status
+- name: google.golang.org/grpc
+  version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
+  subpackages:
+  - balancer
+  - balancer/base
+  - balancer/roundrobin
+  - codes
+  - connectivity
+  - credentials
+  - encoding
+  - encoding/proto
+  - grpclog
+  - internal
+  - internal/backoff
+  - internal/channelz
+  - internal/grpcrand
+  - keepalive
+  - metadata
+  - naming
+  - peer
+  - resolver
+  - resolver/dns
+  - resolver/passthrough
+  - stats
+  - status
+  - tap
+  - transport
+testImports: []

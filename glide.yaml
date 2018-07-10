@@ -1,0 +1,25 @@
+package: github.com/stevepartridge/service
+import:
+- package: github.com/grpc-ecosystem/go-grpc-middleware
+  version: ~1.0.0
+- package: github.com/grpc-ecosystem/grpc-gateway
+  version: ~1.4.1
+  subpackages:
+  - runtime
+- package: github.com/justinas/alice
+- package: github.com/rs/zerolog
+  version: ~1.8.0
+  subpackages:
+  - log
+- package: github.com/stevepartridge/go
+  version: ~0.0.1
+  subpackages:
+  - file
+- package: golang.org/x/net
+  subpackages:
+  - context
+- package: google.golang.org/grpc
+  version: ~1.13.0
+  subpackages:
+  - credentials
+  - metadata
