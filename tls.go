@@ -1,10 +1,9 @@
 package service
 
 import (
+	"crypto/tls"
 	"fmt"
 	"io/ioutil"
-
-	"crypto/tls"
 
 	"github.com/stevepartridge/go/file"
 )
