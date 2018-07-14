@@ -27,10 +27,10 @@ type Service struct {
 	enableInsecure bool
 
 	Grpc           *Grpc
-	Mux            *http.ServeMux
 	gatewayMux     *runtime.ServeMux
 	gatewayHandler func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error
 
+	Mux       *http.ServeMux
 	httpChain alice.Chain
 }
 
@@ -91,8 +91,14 @@ func (s *Service) EnableGatewayHandler(handler func(context.Context, *runtime.Se
 	return nil
 }
 
-func (s *Service) AddHttpHandler(handler func(http.Handler) http.Handler) {
+func (s *Service) AddHttpHandleFunc(handler func(http.Handler) http.Handler) {
 	s.httpChain = s.httpChain.Append(handler)
+}
+
+func (s *Service) AddHttpHandler(handler http.Handler) {
+	s.httpChain = s.httpChain.Append(func(h http.Handler) http.Handler {
+		return handler
+	})
 }
 
 func (s *Service) Serve() error {
