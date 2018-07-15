@@ -11,10 +11,12 @@ import (
 	"strings"
 
 	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"github.com/justinas/alice"
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
+
+	"github.com/go-chi/chi"
+	"github.com/justinas/alice"
 )
 
 type Service struct {
@@ -30,8 +32,8 @@ type Service struct {
 	gatewayMux     *runtime.ServeMux
 	gatewayHandler func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error
 
-	Mux       *http.ServeMux
 	httpChain alice.Chain
+	Router    *chi.Mux
 }
 
 func New(host string, port int) (*Service, error) {
@@ -45,12 +47,13 @@ func New(host string, port int) (*Service, error) {
 	}
 
 	s := Service{
-		Host:       host,
-		Port:       port,
-		CertPool:   x509.NewCertPool(),
-		httpChain:  alice.New(),
-		Mux:        http.NewServeMux(),
+		Host:     host,
+		Port:     port,
+		CertPool: x509.NewCertPool(),
+
+		Router:     chi.NewRouter(),
 		gatewayMux: runtime.NewServeMux(),
+		httpChain:  alice.New(),
 	}
 
 	s.Grpc = &Grpc{
@@ -85,25 +88,18 @@ func (s *Service) EnableGatewayHandler(handler func(context.Context, *runtime.Se
 	if err != nil {
 		return err
 	}
-
-	s.Mux.Handle("/", s.gatewayMux)
+	s.Router.Handle("/", s.gatewayMux)
 
 	return nil
 }
 
-func (s *Service) AddHttpHandleFunc(handler func(http.Handler) http.Handler) {
+func (s *Service) AddHttpMiddlware(handler func(http.Handler) http.Handler) {
 	s.httpChain = s.httpChain.Append(handler)
-}
-
-func (s *Service) AddHttpHandler(handler http.Handler) {
-	s.httpChain = s.httpChain.Append(func(h http.Handler) http.Handler {
-		return handler
-	})
 }
 
 func (s *Service) Serve() error {
 
-	httpServer := s.httpChain.Then(s.Mux)
+	httpServer := s.httpChain.Then(s.Router)
 
 	conn, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
 	if err != nil {
