@@ -13,7 +13,7 @@ type Grpc struct {
 	ServerOptions []grpc.ServerOption
 	Interceptors  []grpc.UnaryServerInterceptor
 
-	server *grpc.Server
+	Server *grpc.Server
 }
 
 func (s *Service) GrpcServer() *grpc.Server {
@@ -31,9 +31,9 @@ func (s *Service) GrpcServer() *grpc.Server {
 			s.Grpc.Interceptors...,
 		)))
 
-	s.Grpc.server = grpc.NewServer(options...)
+	s.Grpc.Server = grpc.NewServer(options...)
 
-	return s.Grpc.server
+	return s.Grpc.Server
 }
 
 func (g *Grpc) AddInterceptors(Interceptors ...grpc.UnaryServerInterceptor) {

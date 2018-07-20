@@ -134,7 +134,7 @@ func (s *Service) Serve() error {
 
 	srv := &http.Server{
 		Addr:      strconv.Itoa(s.Port),
-		Handler:   handlerFunc(s.Grpc.server, httpServer),
+		Handler:   handlerFunc(s.Grpc.Server, httpServer),
 		TLSConfig: &tlsConfig,
 	}
 
