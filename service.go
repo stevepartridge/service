@@ -32,6 +32,7 @@ type Service struct {
 	gatewayMux     *runtime.ServeMux
 	gatewayHandler func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error
 
+	Mux       *http.ServeMux
 	httpChain alice.Chain
 	Router    *chi.Mux
 }
@@ -51,7 +52,8 @@ func New(host string, port int) (*Service, error) {
 		Port:     port,
 		CertPool: x509.NewCertPool(),
 
-		Router:     chi.NewRouter(),
+		Mux:        http.NewServeMux(),
+		Router:     chi.NewMux(),
 		gatewayMux: runtime.NewServeMux(),
 		httpChain:  alice.New(),
 	}
@@ -74,21 +76,7 @@ func (s *Service) EnableGatewayHandler(handler func(context.Context, *runtime.Se
 		return ErrGatewayHandlerIsNil
 	}
 
-	creds := credentials.NewTLS(&tls.Config{
-		ServerName:         s.Host,
-		RootCAs:            s.CertPool,
-		InsecureSkipVerify: s.enableInsecure,
-	})
-
-	opts := []grpc.DialOption{
-		grpc.WithTransportCredentials(creds),
-	}
-
-	err := handler(context.Background(), s.gatewayMux, s.Addr(), opts)
-	if err != nil {
-		return err
-	}
-	s.Router.Handle("/", s.gatewayMux)
+	s.gatewayHandler = handler
 
 	return nil
 }
@@ -98,6 +86,33 @@ func (s *Service) AddHttpMiddlware(handler func(http.Handler) http.Handler) {
 }
 
 func (s *Service) Serve() error {
+
+	if s.gatewayHandler != nil {
+
+		fmt.Println("gateway handler")
+
+		creds := credentials.NewTLS(&tls.Config{
+			ServerName:         s.Host,
+			RootCAs:            s.CertPool,
+			InsecureSkipVerify: s.enableInsecure,
+		})
+
+		opts := []grpc.DialOption{
+			grpc.WithTransportCredentials(creds),
+		}
+
+		ctx := context.WithValue(context.Background(), "grpc-context", "yes")
+		err := s.gatewayHandler(ctx, s.gatewayMux, s.Addr(), opts)
+		if err != nil {
+			return err
+		}
+
+		s.Mux.Handle("/", s.gatewayMux)
+	}
+
+	s.Router.NotFound(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.Mux.ServeHTTP(w, r)
+	}))
 
 	httpServer := s.httpChain.Then(s.Router)
 
