@@ -89,8 +89,6 @@ func (s *Service) Serve() error {
 
 	if s.gatewayHandler != nil {
 
-		fmt.Println("gateway handler")
-
 		creds := credentials.NewTLS(&tls.Config{
 			ServerName:         s.Host,
 			RootCAs:            s.CertPool,
