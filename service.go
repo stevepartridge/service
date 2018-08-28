@@ -94,9 +94,7 @@ func (s *Service) Serve() error {
 	if s.gatewayHandlers != nil {
 
 		creds := credentials.NewTLS(&tls.Config{
-			ServerName:         s.Host,
-			RootCAs:            s.CertPool,
-			InsecureSkipVerify: s.enableInsecure,
+			InsecureSkipVerify: true,
 		})
 
 		opts := []grpc.DialOption{
@@ -105,7 +103,12 @@ func (s *Service) Serve() error {
 
 		for i := range s.gatewayHandlers {
 
-			err := s.gatewayHandlers[i](context.Background(), s.gatewayMux, s.Addr(), opts)
+			err := s.gatewayHandlers[i](
+				context.Background(),
+				s.gatewayMux,
+				fmt.Sprintf("localhost:%d", s.Port),
+				opts,
+			)
 			if err != nil {
 				return err
 			}
