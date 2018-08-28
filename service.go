@@ -20,7 +20,6 @@ import (
 )
 
 type Service struct {
-	Host string
 	Port int
 
 	CertPool       *x509.CertPool
@@ -37,18 +36,13 @@ type Service struct {
 	Router    *chi.Mux
 }
 
-func New(host string, port int) (*Service, error) {
-
-	if host == "" {
-		return nil, ErrInvalidHost
-	}
+func New(port int) (*Service, error) {
 
 	if port <= 0 {
 		return nil, ErrReplacer(ErrInvalidPort, port)
 	}
 
 	s := Service{
-		Host:     host,
 		Port:     port,
 		CertPool: x509.NewCertPool(),
 
@@ -66,9 +60,9 @@ func New(host string, port int) (*Service, error) {
 	return &s, nil
 }
 
-func (s *Service) Addr() string {
-	return fmt.Sprintf("%s:%d", s.Host, s.Port)
-}
+// func (s *Service) Addr() string {
+// 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
+// }
 
 func (s *Service) AddGatewayHandler(handler ...func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error) error {
 
@@ -93,12 +87,12 @@ func (s *Service) Serve() error {
 
 	if s.gatewayHandlers != nil {
 
-		creds := credentials.NewTLS(&tls.Config{
-			InsecureSkipVerify: true,
-		})
-
 		opts := []grpc.DialOption{
-			grpc.WithTransportCredentials(creds),
+			grpc.WithTransportCredentials(
+				credentials.NewTLS(&tls.Config{
+					InsecureSkipVerify: true,
+				}),
+			),
 		}
 
 		for i := range s.gatewayHandlers {

@@ -21,7 +21,7 @@ func (s *Service) GrpcServer() *grpc.Server {
 	options := []grpc.ServerOption{
 		grpc.MaxRecvMsgSize(s.Grpc.MaxReceiveSize),
 		grpc.MaxSendMsgSize(s.Grpc.MaxSendSize),
-		grpc.Creds(credentials.NewClientTLSFromCert(s.CertPool, s.Host)),
+		grpc.Creds(credentials.NewClientTLSFromCert(s.CertPool, "")),
 	}
 
 	options = append(options, s.Grpc.ServerOptions...)
