@@ -21,7 +21,7 @@ import:
   subpackages:
   - context
 - package: google.golang.org/grpc
-  version: ~1.13.0
+  version: ~1.16.0
   subpackages:
   - credentials
   - metadata

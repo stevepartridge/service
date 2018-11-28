@@ -1,8 +1,10 @@
-hash: 17143dfc9a7ec40e3db25f3a22a9c0e09068f5e980fa7f612882b1c9890365e0
-updated: 2018-07-09T19:33:00.659492-07:00
+hash: 350aa6a894b1db7beeb84047ae3b708f12a59e3e9243afe0abb69f43e50f6e42
+updated: 2018-11-27T23:56:54.700214-08:00
 imports:
+- name: github.com/go-chi/chi
+  version: b5294d10673813fac8558e7f47242bc9e61b4c25
 - name: github.com/golang/protobuf
-  version: b4deda0973fb4c70b50d226b1af49f3da59f5265
+  version: 8d0c54c1246661d9a51ca0ba455d22116d485eaa
   subpackages:
   - jsonpb
   - proto
@@ -28,32 +30,36 @@ imports:
   - internal/json
   - log
 - name: github.com/stevepartridge/go
-  version: f18d838882ab0c193c74e218af585c2547249456
+  version: a6caff1ec6c425c11829907e8d4f540117e69886
   subpackages:
   - file
 - name: golang.org/x/net
-  version: 1c05540f6879653db88113bc4a2b70aec4bd491f
+  version: adae6a3d119ae4890b46832a2e88a95adc62b8e7
   subpackages:
   - context
+  - http/httpguts
   - http2
   - http2/hpack
   - idna
   - internal/timeseries
-  - lex/httplex
   - trace
+- name: golang.org/x/sys
+  version: 62eef0e2fa9b2c385f7b2778e763486da6880d37
+  subpackages:
+  - unix
 - name: golang.org/x/text
-  version: d5a9226ed7dd70cade6ccae9d37517fe14dd9fee
+  version: 6f44c5a2ea40ee3593d98cdcc905cc1fdaa660e2
   subpackages:
   - secure/bidirule
   - transform
   - unicode/bidi
   - unicode/norm
 - name: google.golang.org/genproto
-  version: a8101f21cf983e773d0c1133ebc5424792003214
+  version: 31ac5d88444a9e7ad18077db9a165d793ad06a2e
   subpackages:
   - googleapis/rpc/status
 - name: google.golang.org/grpc
-  version: 168a6198bcb0ef175f7dacec0b8691fc141dc9b8
+  version: 2e463a05d100327ca47ac218281906921038fd95
   subpackages:
   - balancer
   - balancer/base
@@ -67,7 +73,9 @@ imports:
   - internal
   - internal/backoff
   - internal/channelz
+  - internal/envconfig
   - internal/grpcrand
+  - internal/transport
   - keepalive
   - metadata
   - naming
@@ -78,5 +86,4 @@ imports:
   - stats
   - status
   - tap
-  - transport
 testImports: []
