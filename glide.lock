@@ -1,5 +1,5 @@
-hash: 524819d52a864fac51bf320d0e6fd2786528375702e5d4f0ee119ec0543d9013
-updated: 2019-01-13T12:22:19.295466-08:00
+hash: def7ada54e7e34067bbbf7e793642e1e2e2a63bc8f28e0d2d3020015ae4f1059
+updated: 2019-01-13T12:35:40.129144-08:00
 imports:
 - name: github.com/go-chi/chi
   version: 08d9051ef6546d57c5dca8eae13e6df362e2d568
@@ -29,7 +29,7 @@ imports:
 - name: github.com/justinas/alice
   version: 03f45bd4b7dad4734bc4620e46a35789349abb20
 - name: github.com/rs/zerolog
-  version: 77db4b4f350e31be66a57c332acb7721cf9ff9bb
+  version: 8747b7b3a51b5d08ee7ac50eaf4869edaf9f714a
   subpackages:
   - internal/cbor
   - internal/json

@@ -10,7 +10,7 @@ import:
 - package: github.com/go-chi/chi
   version: ~3.3.2
 - package: github.com/rs/zerolog
-  version: ~1.8.0
+  version: ~1.11.0
   subpackages:
   - log
 - package: github.com/stevepartridge/go
