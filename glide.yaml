@@ -25,3 +25,5 @@ import:
   subpackages:
   - credentials
   - metadata
+- package: github.com/go-openapi/spec
+  version: ~0.18.0

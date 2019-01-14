@@ -1,8 +1,18 @@
-hash: def7ada54e7e34067bbbf7e793642e1e2e2a63bc8f28e0d2d3020015ae4f1059
-updated: 2019-01-13T12:35:40.129144-08:00
+hash: 1dec77eaacfd35bbafc3dde078094777b475dafd8949effe72ef85e04708c005
+updated: 2019-01-14T10:25:12.569526-08:00
 imports:
+- name: github.com/elazarl/go-bindata-assetfs
+  version: 38087fe4dafb822e541b3f7955075cc1c30bd294
 - name: github.com/go-chi/chi
   version: 08d9051ef6546d57c5dca8eae13e6df362e2d568
+- name: github.com/go-openapi/jsonpointer
+  version: ef5f0afec364d3b9396b7b77b43dbe26bf1f8004
+- name: github.com/go-openapi/jsonreference
+  version: 8483a886a90412cd6858df4ea3483dce9c8e35a3
+- name: github.com/go-openapi/spec
+  version: 5b6cdde3200976e3ecceb2868706ee39b6aff3e4
+- name: github.com/go-openapi/swag
+  version: 1d29f06aebd59ccdf11ae04aa0334ded96e2d909
 - name: github.com/golang/protobuf
   version: 347cf4a86c1cb8d262994d8ef5924d4576c5b331
   subpackages:
@@ -28,6 +38,16 @@ imports:
   - utilities
 - name: github.com/justinas/alice
   version: 03f45bd4b7dad4734bc4620e46a35789349abb20
+- name: github.com/mailru/easyjson
+  version: 60711f1a8329503b04e1c88535f419d0bb440bff
+  subpackages:
+  - buffer
+  - jlexer
+  - jwriter
+- name: github.com/PuerkitoBio/purell
+  version: 975f53781597ed779763b7b65566e74c4004d8de
+- name: github.com/PuerkitoBio/urlesc
+  version: de5bf2ad457846296e2031421a34e2568e304e35
 - name: github.com/rs/zerolog
   version: 8747b7b3a51b5d08ee7ac50eaf4869edaf9f714a
   subpackages:
@@ -59,6 +79,7 @@ imports:
   - transform
   - unicode/bidi
   - unicode/norm
+  - width
 - name: google.golang.org/genproto
   version: db91494dd46c1fdcbbde05e5ff5eb56df8f7d79a
   subpackages:
@@ -92,4 +113,6 @@ imports:
   - stats
   - status
   - tap
+- name: gopkg.in/yaml.v2
+  version: 51d6538a90f86fe93ac480b35f37b2be17fef232
 testImports: []
