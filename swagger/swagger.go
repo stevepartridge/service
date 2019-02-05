@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"mime"
 	"net/http"
+	"strings"
 
-	"github.com/elazarl/go-bindata-assetfs"
+	assetfs "github.com/elazarl/go-bindata-assetfs"
 	"github.com/go-chi/chi"
 	"github.com/go-openapi/spec"
 )
@@ -107,6 +108,20 @@ func (s *Swagger) Serve() {
 		}
 
 		w.Write(data)
+	})
+
+	docTitle := fmt.Sprintf("%s%s", strings.ToUpper(s.Title[:1]), s.Title[1:])
+
+	serviceJS := `
+function service() {
+	document.title = "` + docTitle + ` API Documentation";
+};
+	`
+
+	s.mux.HandleFunc(fmt.Sprintf("%s/service.js", s.Path), func(w http.ResponseWriter, req *http.Request) {
+		fmt.Println("service.js")
+
+		w.Write([]byte(serviceJS))
 	})
 
 	mime.AddExtensionType(".svg", "image/svg+xml")
