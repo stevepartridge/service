@@ -6,7 +6,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
-// Grpc
+// Grpc holds settings and server
 type Grpc struct {
 	MaxReceiveSize int
 	MaxSendSize    int
