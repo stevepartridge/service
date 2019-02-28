@@ -5,12 +5,14 @@ import (
 
 	"golang.org/x/net/context" // have to use this context because of grpc lib
 	"google.golang.org/grpc"
+
 	// "google.golang.org/grpc/codes"
 	// "google.golang.org/grpc/status"
 
 	"github.com/rs/zerolog/log"
 )
 
+// RequestInterceptor is an example request logger middleware
 func RequestInterceptor() func(context.Context, interface{}, *grpc.UnaryServerInfo, grpc.UnaryHandler) (interface{}, error) {
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {
@@ -28,6 +30,7 @@ func RequestInterceptor() func(context.Context, interface{}, *grpc.UnaryServerIn
 	}
 }
 
+// TelemetryInterceptor is an example telementry logger middleware
 func TelemetryInterceptor() func(context.Context, interface{}, *grpc.UnaryServerInfo, grpc.UnaryHandler) (interface{}, error) {
 
 	return func(ctx context.Context, req interface{}, info *grpc.UnaryServerInfo, handler grpc.UnaryHandler) (interface{}, error) {

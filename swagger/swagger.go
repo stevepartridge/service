@@ -27,6 +27,7 @@ type Swagger struct {
 	security        []map[string][]string
 }
 
+// New initiates swagger server
 func New(mux *chi.Mux) (*Swagger, error) {
 	s := &Swagger{
 		mux:     mux,
@@ -36,6 +37,7 @@ func New(mux *chi.Mux) (*Swagger, error) {
 	return s, nil
 }
 
+// AddSecurityScheme is a helper to add security schemes such as OAuth2, etc.
 func (s *Swagger) AddSecurityScheme(name string, scheme spec.SecurityScheme) {
 
 	if s.securitySchemes == nil {
@@ -54,6 +56,7 @@ func (s *Swagger) AddSecurityScheme(name string, scheme spec.SecurityScheme) {
 
 }
 
+// Serve handles the docs, swagger.json, and server.js
 func (s *Swagger) Serve() {
 
 	s.mux.HandleFunc(fmt.Sprintf("%s/swagger.json", s.Path), func(w http.ResponseWriter, req *http.Request) {

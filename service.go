@@ -19,7 +19,7 @@ import (
 	"github.com/justinas/alice"
 )
 
-// Service
+// Service holds the top level settings and references
 type Service struct {
 	Port int
 
@@ -78,7 +78,7 @@ func (s *Service) AddGatewayHandler(handler ...func(context.Context, *runtime.Se
 	return nil
 }
 
-// AddHttpMiddleware allows for adding middleware to http(s) specifically
+// AddHttpMiddlware allows for adding middleware to http(s) specifically
 func (s *Service) AddHttpMiddlware(handler func(http.Handler) http.Handler) {
 	s.httpChain = s.httpChain.Append(handler)
 }

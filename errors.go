@@ -6,6 +6,7 @@ import (
 )
 
 var (
+	// Static Error declarations
 	ErrInvalidHost = errors.New("Host wasn't provided or is invalid")
 	ErrInvalidPort = errors.New("Invalid port %d")
 
@@ -24,6 +25,7 @@ var (
 	ErrGatewayHandlerIsNil = errors.New("Gateway entrypoint handler nil")
 )
 
+// ErrReplacer allows for static errors to have dynamic values
 func ErrReplacer(err error, replacers ...interface{}) error {
 	return errors.New(fmt.Errorf(err.Error(), replacers...))
 }
