@@ -3,7 +3,7 @@ import:
 - package: github.com/grpc-ecosystem/go-grpc-middleware
   version: ~1.0.0
 - package: github.com/grpc-ecosystem/grpc-gateway
-  version: ~1.6.4
+  version: ~1.7.0
   subpackages:
   - runtime
 - package: github.com/justinas/alice
@@ -27,3 +27,5 @@ import:
   - metadata
 - package: github.com/go-openapi/spec
   version: ~0.18.0
+- package: github.com/gogo/protobuf
+  version: ~1.2.1
