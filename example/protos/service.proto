@@ -1,0 +1,34 @@
+syntax = "proto3";
+option go_package = "github.com/stevepartridge/service/example/protos";
+
+package example;
+
+import "google/api/annotations.proto";
+
+// import "google/protobuf/empty.proto";
+
+
+service Example {
+  // Get service version and build info
+  rpc Info (ServiceInfoRequest) returns (ServiceInfoResponse) {
+    option (google.api.http) = {
+      get: "/info"
+    };
+  }
+
+}
+
+message ServiceInfoRequest {}
+message ServiceInfoResponse {
+
+  string name = 1;
+
+  string version = 2;
+
+  string build = 3;
+
+  string built_at = 4;
+
+  string git_hash = 5;
+
+}

@@ -1,0 +1,58 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "github.com/stevepartridge/service/example/protos/service.proto",
+    "version": "version not set"
+  },
+  "schemes": [
+    "http",
+    "https"
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/info": {
+      "get": {
+        "summary": "Get service version and build info",
+        "operationId": "Info",
+        "responses": {
+          "200": {
+            "description": "A successful response.",
+            "schema": {
+              "$ref": "#/definitions/exampleServiceInfoResponse"
+            }
+          }
+        },
+        "tags": [
+          "Example"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "exampleServiceInfoResponse": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "version": {
+          "type": "string"
+        },
+        "build": {
+          "type": "string"
+        },
+        "built_at": {
+          "type": "string"
+        },
+        "git_hash": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}
