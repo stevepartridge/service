@@ -8,6 +8,7 @@ import (
 	"github.com/stevepartridge/go/file"
 )
 
+// AppendCertsFromPEM support direct setting of rootCA
 func (s *Service) AppendCertsFromPEM(rootCA []byte) error {
 	ok := s.CertPool.AppendCertsFromPEM([]byte(rootCA))
 	if !ok {
@@ -16,6 +17,7 @@ func (s *Service) AppendCertsFromPEM(rootCA []byte) error {
 	return nil
 }
 
+// AddKeyPair allows for direct setting of cert/keys
 func (s *Service) AddKeyPair(publicCert, privateKey []byte) error {
 	if publicCert == nil {
 		return ErrAddKeyPairPublicCertIsNil
@@ -31,6 +33,7 @@ func (s *Service) AddKeyPair(publicCert, privateKey []byte) error {
 	return nil
 }
 
+// AddKeyPairFromFiles allows for setting cert/key from files
 func (s *Service) AddKeyPairFromFiles(publicCertFile, privateKeyFile string) error {
 
 	if !file.Exists(publicCertFile) {
@@ -54,6 +57,7 @@ func (s *Service) AddKeyPairFromFiles(publicCertFile, privateKeyFile string) err
 	return s.AddKeyPair(publicCert, privateKey)
 }
 
+// GetCertificate is a helper for pulling tls.Certificate from provided cert/key
 func (s *Service) GetCertificate() (tls.Certificate, error) {
 
 	if s.PublicCert == nil {
@@ -67,6 +71,7 @@ func (s *Service) GetCertificate() (tls.Certificate, error) {
 
 }
 
+// EnableInsecure is a setter for enabling the insecure flag
 func (s *Service) EnableInsecure() {
 	s.enableInsecure = true
 	fmt.Println(" ! ! * Enabled insecure * ! !")
