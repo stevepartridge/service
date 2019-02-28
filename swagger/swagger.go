@@ -51,7 +51,7 @@ func (s *Swagger) AddSecurityScheme(name string, scheme spec.SecurityScheme) {
 	}
 
 	s.security = append(s.security, map[string][]string{
-		name: []string{},
+		name: {},
 	})
 
 	s.securitySchemes[name] = &scheme
