@@ -12,9 +12,11 @@ import (
 )
 
 const (
+	// DefaultPath is root path docs will be served up unless configured differently
 	DefaultPath = "/docs"
 )
 
+// Swagger holds the basic config and mux
 type Swagger struct {
 	Title    string
 	Version  string
