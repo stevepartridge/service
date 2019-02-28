@@ -45,5 +45,5 @@ var (
 
 // ErrReplacer allows for static errors to have dynamic values
 func ErrReplacer(err error, replacers ...interface{}) error {
-	return errors.New(fmt.Errorf(err.Error(), replacers...))
+	return fmt.Errorf(err.Error(), replacers...)
 }
