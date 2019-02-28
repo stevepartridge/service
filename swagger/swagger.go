@@ -119,7 +119,7 @@ function service() {
 	`
 
 	s.mux.HandleFunc(fmt.Sprintf("%s/service.js", s.Path), func(w http.ResponseWriter, req *http.Request) {
-		fmt.Println("service.js")
+		// fmt.Println("service.js")
 
 		w.Write([]byte(serviceJS))
 	})
