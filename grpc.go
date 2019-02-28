@@ -6,6 +6,7 @@ import (
 	"google.golang.org/grpc/credentials"
 )
 
+// Grpc
 type Grpc struct {
 	MaxReceiveSize int
 	MaxSendSize    int
@@ -17,6 +18,7 @@ type Grpc struct {
 	Server *grpc.Server
 }
 
+// GrpcServer creates and returns the server after applying ServerOptions
 func (s *Service) GrpcServer() *grpc.Server {
 
 	options := []grpc.ServerOption{
@@ -42,14 +44,17 @@ func (s *Service) GrpcServer() *grpc.Server {
 	return s.Grpc.Server
 }
 
+// AddUnaryInterceptors is an exposed method to append unary interceptors
 func (g *Grpc) AddUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) {
 	g.UnaryInterceptors = append(g.UnaryInterceptors, interceptors...)
 }
 
+// AddStreamInterceptors is an exposed method to append stream interceptors
 func (g *Grpc) AddStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) {
 	g.StreamInterceptors = append(g.StreamInterceptors, interceptors...)
 }
 
+// AddOptions is an exposed method to append options
 func (g *Grpc) AddOptions(opts ...grpc.ServerOption) {
 	g.ServerOptions = append(g.ServerOptions, opts...)
 }

@@ -25,5 +25,5 @@ var (
 )
 
 func ErrReplacer(err error, replacers ...interface{}) error {
-	return errors.New(fmt.Sprintf(err.Error(), replacers...))
+	return errors.New(fmt.Errorf(err.Error(), replacers...))
 }

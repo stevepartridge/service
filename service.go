@@ -19,6 +19,7 @@ import (
 	"github.com/justinas/alice"
 )
 
+// Service
 type Service struct {
 	Port int
 
@@ -36,6 +37,7 @@ type Service struct {
 	Router    *chi.Mux
 }
 
+// New initiates a new Service with default settings
 func New(port int) (*Service, error) {
 
 	if port <= 0 {
@@ -60,10 +62,7 @@ func New(port int) (*Service, error) {
 	return &s, nil
 }
 
-// func (s *Service) Addr() string {
-// 	return fmt.Sprintf("%s:%d", s.Host, s.Port)
-// }
-
+// AddGatewayHandler allows for adding for http(s) fallbacks
 func (s *Service) AddGatewayHandler(handler ...func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error) error {
 
 	if handler == nil {
@@ -79,10 +78,12 @@ func (s *Service) AddGatewayHandler(handler ...func(context.Context, *runtime.Se
 	return nil
 }
 
+// AddHttpMiddleware allows for adding middleware to http(s) specifically
 func (s *Service) AddHttpMiddlware(handler func(http.Handler) http.Handler) {
 	s.httpChain = s.httpChain.Append(handler)
 }
 
+// Serve serves up everything that has been configured/defined
 func (s *Service) Serve() error {
 
 	if s.gatewayHandlers != nil {
