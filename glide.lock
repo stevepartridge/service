@@ -1,5 +1,5 @@
 hash: 84e46f9366861099c1d269400ce7010de7e7fc1964d37151b6a6f26263438ceb
-updated: 2019-02-27T14:15:35.341015-08:00
+updated: 2019-02-27T17:08:10.606587-08:00
 imports:
 - name: github.com/elazarl/go-bindata-assetfs
   version: 38087fe4dafb822e541b3f7955075cc1c30bd294
@@ -119,6 +119,7 @@ imports:
 - name: google.golang.org/genproto
   version: db91494dd46c1fdcbbde05e5ff5eb56df8f7d79a
   subpackages:
+  - googleapis/api/annotations
   - googleapis/rpc/status
   - protobuf/field_mask
 - name: google.golang.org/grpc
