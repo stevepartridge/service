@@ -138,14 +138,17 @@ func (s *Service) Serve() error {
 
 	if !s.enableInsecure {
 		tlsConfig.Certificates = []tls.Certificate{cert}
+		tlsConfig.BuildNameToCertificate()
 	}
-
-	tlsConfig.BuildNameToCertificate()
 
 	srv := &http.Server{
 		Addr:      strconv.Itoa(s.Port),
 		Handler:   handlerFunc(s.Grpc.Server, httpServer),
 		TLSConfig: &tlsConfig,
+	}
+
+	if s.enableInsecure {
+		return srv.Serve(conn)
 	}
 
 	return srv.Serve(tls.NewListener(conn, srv.TLSConfig))
