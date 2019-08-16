@@ -124,15 +124,20 @@ func (s *Service) Serve() error {
 		panic(err)
 	}
 
-	cert, err := s.GetCertificate()
-	if err != nil {
-		return err
-	}
-
 	tlsConfig := tls.Config{
-		Certificates:       []tls.Certificate{cert},
 		NextProtos:         []string{"h2"},
 		InsecureSkipVerify: s.enableInsecure,
+	}
+
+	cert, err := s.GetCertificate()
+	if err != nil {
+		if !s.enableInsecure {
+			return err
+		}
+	}
+
+	if !s.enableInsecure {
+		tlsConfig.Certificates = []tls.Certificate{cert}
 	}
 
 	tlsConfig.BuildNameToCertificate()
