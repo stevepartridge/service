@@ -71,11 +71,17 @@ func (s *Swagger) Serve() {
 			w.Write(errorJSON(err))
 		}
 
-		swag.Info.Title = s.Title
-		swag.Info.Version = s.Version
+		if s.Title != "" {
+			swag.Info.Title = s.Title
+		}
+		if s.Version != "" {
+			swag.Info.Version = s.Version
+		}
 		// swag.Info.Contact
 		// swag.Info.License
-		swag.Schemes = s.Schemes
+		if len(s.Schemes) > 0 {
+			swag.Schemes = s.Schemes
+		}
 
 		if s.securitySchemes != nil {
 			swag.SecurityDefinitions = s.securitySchemes
