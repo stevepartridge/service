@@ -121,7 +121,10 @@ func (s *Swagger) Serve() {
 		w.Write(data)
 	})
 
-	docTitle := fmt.Sprintf("%s%s", strings.ToUpper(s.Title[:1]), s.Title[1:])
+	docTitle := s.Title
+	if len(s.Title) > 1 {
+		docTitle = fmt.Sprintf("%s%s", strings.ToUpper(s.Title[:1]), s.Title[1:])
+	}
 
 	serviceJS := `
 function service() {
