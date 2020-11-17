@@ -3,6 +3,7 @@ package service
 import (
 	"crypto/tls"
 	"crypto/x509"
+	"errors"
 	"fmt"
 	"math"
 	"net"
@@ -35,6 +36,8 @@ type Service struct {
 	Mux       *http.ServeMux
 	httpChain alice.Chain
 	Router    *chi.Mux
+
+	server *http.Server
 }
 
 // New initiates a new Service with default settings
@@ -141,18 +144,47 @@ func (s *Service) Serve() error {
 		tlsConfig.BuildNameToCertificate()
 	}
 
-	srv := &http.Server{
+	s.server = &http.Server{
 		Addr:      strconv.Itoa(s.Port),
 		Handler:   handlerFunc(s.Grpc.Server, httpServer),
 		TLSConfig: &tlsConfig,
 	}
 
 	if s.enableInsecure {
-		return srv.Serve(conn)
+		return s.server.Serve(conn)
 	}
 
-	return srv.Serve(tls.NewListener(conn, srv.TLSConfig))
+	return s.server.Serve(tls.NewListener(conn, s.server.TLSConfig))
 
+}
+
+// GracefulShutdown attempts to gracefully shutdown server given a context timeout
+func (s *Service) GracefulShutdown(ctx context.Context) error {
+	defer s.Grpc.Server.GracefulStop()
+	if s.server == nil {
+		return errors.New("Service server is nil")
+	}
+	err := s.server.Shutdown(ctx)
+	if err != nil {
+		return err
+	}
+	<-ctx.Done()
+	s.Grpc.Server.Stop()
+	return nil
+}
+
+// Shutdown will handle an immediate shutdown without concern for any pending requests
+// using GracefulShutdown is recommended
+func (s *Service) Shutdown() error {
+	if s.server == nil {
+		return errors.New("Service server is nil")
+	}
+	err := s.server.Shutdown(context.Background())
+	if err != nil {
+		return err
+	}
+	s.Grpc.Server.Stop()
+	return nil
 }
 
 func handlerFunc(grpcServer *grpc.Server, httpHandler http.Handler) http.Handler {

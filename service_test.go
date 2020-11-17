@@ -137,8 +137,12 @@ func Test_Unit_ServiceServe_Success(t *testing.T) {
 
 	}()
 
-	time.Sleep(2 * time.Second)
+	time.Sleep(5 * time.Second)
 
-	svc.Grpc.Server.Stop()
+	ctx, _ := context.WithDeadline(context.Background(), time.Now().Add(5*time.Second))
+	err = svc.GracefulShutdown(ctx)
+	if err != nil {
+		t.Errorf("Unexpected error: %s", err.Error())
+	}
 
 }
