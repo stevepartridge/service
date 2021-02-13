@@ -5,4 +5,4 @@
 
 
 # service
-A service package to serve grpc, grpc-gateway, and additional http handlers
+A service package to serve grpc, grpc-gateway, and additional http handlers on a single port
