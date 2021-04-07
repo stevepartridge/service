@@ -136,8 +136,6 @@ function service() {
 };
 	`
 
-	fmt.Println("swagger.path", s.Path)
-
 	fs := http.FileServer(http.FS(staticFiles))
 	fs = http.StripPrefix(s.Path, fs)
 
@@ -235,7 +233,6 @@ func (s *Swagger) makeIndexHTML(data []byte) {
 		`
 	}
 
-	// idx = strings.ReplaceAll(idx, `src="./`, `src="./`+staticPath)
 	idx = strings.ReplaceAll(idx, "\n", " ")
 	idx = strings.ReplaceAll(idx, "\t", " ")
 	for strings.Contains(idx, "  ") {
@@ -245,7 +242,6 @@ func (s *Swagger) makeIndexHTML(data []byte) {
 	idx = strings.ReplaceAll(idx, " <", "<")
 	idx = strings.ReplaceAll(idx, " >", ">")
 
-	fmt.Println("index", idx)
 	s.index = []byte(idx)
 }
 
