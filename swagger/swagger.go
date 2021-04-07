@@ -1,41 +1,73 @@
 package swagger
 
 import (
+	"embed"
+	"errors"
 	"fmt"
 	"mime"
 	"net/http"
 	"strings"
 
-	assetfs "github.com/elazarl/go-bindata-assetfs"
-	"github.com/go-chi/chi"
 	"github.com/go-openapi/spec"
+	"gopkg.in/yaml.v2"
 )
 
 const (
 	// DefaultPath is root path docs will be served up unless configured differently
 	DefaultPath = "/docs"
+
+	staticPath = "static/"
+)
+
+var (
+	// ErrServeMuxMustNotBeNil error
+	ErrServeMuxMustNotBeNil = errors.New("swagger: serve mux can not be nil")
+	// ErrJSONDataMustNotBeNil error
+	ErrJSONDataMustNotBeNil = errors.New("swagger: JSON data can not be nil")
+
+	//go:embed static
+	staticFiles embed.FS
+
+	//go:embed static/index.html
+	indexHTML []byte
 )
 
 // Swagger holds the basic config and mux
 type Swagger struct {
-	Title    string
-	Version  string
-	Schemes  []string
-	JSONData []byte
-	Path     string
+	Spec    spec.Swagger
+	Schemes []string
+	Path    string
 
-	mux             *chi.Mux
+	mux             *http.ServeMux
 	securitySchemes map[string]*spec.SecurityScheme
 	security        []map[string][]string
+	index           []byte
 }
 
 // New initiates swagger server
-func New(mux *chi.Mux) (*Swagger, error) {
+func New(mux *http.ServeMux, jsonData []byte) (*Swagger, error) {
+
+	if mux == nil {
+		return nil, ErrServeMuxMustNotBeNil
+	}
+
+	if jsonData == nil {
+		return nil, ErrJSONDataMustNotBeNil
+	}
+
 	s := &Swagger{
 		mux:     mux,
 		Schemes: []string{"http", "https"},
 		Path:    DefaultPath,
 	}
+
+	err := s.Spec.UnmarshalJSON(jsonData)
+	if err != nil {
+		return nil, err
+	}
+
+	s.makeIndexHTML(indexHTML)
+
 	return s, nil
 }
 
@@ -61,69 +93,41 @@ func (s *Swagger) AddSecurityScheme(name string, scheme spec.SecurityScheme) {
 // Serve handles the docs, swagger.json, and server.js
 func (s *Swagger) Serve() {
 
+	s.cleanSpec()
+
 	s.mux.HandleFunc(fmt.Sprintf("%s/swagger.json", s.Path), func(w http.ResponseWriter, req *http.Request) {
-
-		swag := spec.Swagger{}
-
-		err := swag.UnmarshalJSON(s.JSONData)
+		data, err := s.Spec.MarshalJSON()
 		if err != nil {
-
 			w.Write(errorJSON(err))
 		}
-
-		if s.Title != "" {
-			swag.Info.Title = s.Title
-		}
-		if s.Version != "" {
-			swag.Info.Version = s.Version
-		}
-		// swag.Info.Contact
-		// swag.Info.License
-		if len(s.Schemes) > 0 {
-			swag.Schemes = s.Schemes
-		}
-
-		if s.securitySchemes != nil {
-			swag.SecurityDefinitions = s.securitySchemes
-		}
-
-		if len(s.security) > 0 {
-
-			if swag.Paths != nil {
-
-				for k := range swag.Paths.Paths {
-
-					if swag.Paths.Paths[k].Get != nil {
-						swag.Paths.Paths[k].Get.Security = s.security
-					}
-					if swag.Paths.Paths[k].Post != nil {
-						swag.Paths.Paths[k].Post.Security = s.security
-					}
-					if swag.Paths.Paths[k].Put != nil {
-						swag.Paths.Paths[k].Put.Security = s.security
-					}
-					if swag.Paths.Paths[k].Delete != nil {
-						swag.Paths.Paths[k].Delete.Security = s.security
-					}
-					if swag.Paths.Paths[k].Patch != nil {
-						swag.Paths.Paths[k].Patch.Security = s.security
-					}
-				}
-			}
-		}
-
-		data, err := swag.MarshalJSON()
-		if err != nil {
-
-			w.Write(errorJSON(err))
-		}
-
+		w.Header().Add("Content-Type", "application/json")
 		w.Write(data)
 	})
 
-	docTitle := s.Title
-	if len(s.Title) > 1 {
-		docTitle = fmt.Sprintf("%s%s", strings.ToUpper(s.Title[:1]), s.Title[1:])
+	s.mux.HandleFunc(fmt.Sprintf("%s/swagger.yaml", s.Path), func(w http.ResponseWriter, req *http.Request) {
+		data, err := s.Spec.MarshalJSON()
+		if err != nil {
+			w.Write(errorJSON(err))
+		}
+
+		var tmp interface{}
+		err = yaml.Unmarshal(data, &tmp)
+		if err != nil {
+			w.Write(errorJSON(err))
+		}
+
+		data, err = yaml.Marshal(tmp)
+		if err != nil {
+			w.Write(errorJSON(err))
+		}
+
+		w.Header().Add("Content-Type", "text/yaml")
+		w.Write(data)
+	})
+
+	docTitle := s.Spec.Info.Title
+	if len(s.Spec.Info.Title) > 1 {
+		docTitle = fmt.Sprintf("%s%s", strings.ToUpper(s.Spec.Info.Title[:1]), s.Spec.Info.Title[1:])
 	}
 
 	serviceJS := `
@@ -132,32 +136,117 @@ function service() {
 };
 	`
 
-	s.mux.HandleFunc(fmt.Sprintf("%s/service.js", s.Path), func(w http.ResponseWriter, req *http.Request) {
-		// fmt.Println("service.js")
+	fmt.Println("swagger.path", s.Path)
 
+	fs := http.FileServer(http.FS(staticFiles))
+	fs = http.StripPrefix(s.Path, fs)
+
+	s.mux.Handle(s.Path+"/"+staticPath, fs)
+
+	s.mux.HandleFunc(fmt.Sprintf("%s/service.js", s.Path), func(w http.ResponseWriter, req *http.Request) {
+		w.Header().Add("Content-Type", "text/javascript")
+		w.WriteHeader(200)
 		w.Write([]byte(serviceJS))
 	})
 
 	mime.AddExtensionType(".svg", "image/svg+xml")
 
-	fileServer := http.FileServer(&assetfs.AssetFS{
-		Asset:    Asset,
-		AssetDir: AssetDir,
-		Prefix:   "swagger/ui",
+	if s.Path == "/" || s.Path[len(s.Path)-1] == '/' {
+		s.Path = strings.TrimRight(s.Path, "/")
+		s.mux.HandleFunc(s.Path, http.RedirectHandler(s.Path, 301).ServeHTTP)
+	}
+
+	index := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/html")
+		w.WriteHeader(200)
+		w.Write(s.index)
 	})
 
-	fs := http.StripPrefix(s.Path, fileServer)
+	s.mux.Handle(s.Path, index)
+	s.mux.Handle(s.Path+"/", index)
+	s.mux.Handle(s.Path+"/index.html", index)
 
-	if s.Path != "/" && s.Path[len(s.Path)-1] != '/' {
-		s.mux.Get(s.Path, http.RedirectHandler(s.Path+"/", 301).ServeHTTP)
-		s.Path += "/"
+}
+
+func (s *Swagger) cleanSpec() {
+
+	if s.securitySchemes != nil {
+		s.Spec.SecurityDefinitions = s.securitySchemes
 	}
-	s.Path += "*"
 
-	s.mux.Get(s.Path, http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		fs.ServeHTTP(w, r)
-	}))
+	if len(s.security) > 0 {
 
+		if s.Spec.Paths != nil {
+
+			for k := range s.Spec.Paths.Paths {
+
+				if s.Spec.Paths.Paths[k].Get != nil {
+					s.Spec.Paths.Paths[k].Get.Security = s.security
+				}
+				if s.Spec.Paths.Paths[k].Post != nil {
+					s.Spec.Paths.Paths[k].Post.Security = s.security
+				}
+				if s.Spec.Paths.Paths[k].Put != nil {
+					s.Spec.Paths.Paths[k].Put.Security = s.security
+				}
+				if s.Spec.Paths.Paths[k].Delete != nil {
+					s.Spec.Paths.Paths[k].Delete.Security = s.security
+				}
+				if s.Spec.Paths.Paths[k].Patch != nil {
+					s.Spec.Paths.Paths[k].Patch.Security = s.security
+				}
+			}
+		}
+	}
+}
+
+func (s *Swagger) makeIndexHTML(data []byte) {
+	idx := string(indexHTML)
+	idx = strings.ReplaceAll(idx, `href="./`, `href="./`+staticPath)
+	idx = strings.ReplaceAll(idx, `src="./`, `src="./`+staticPath)
+
+	parts := strings.Split(idx, "window.onload = function() {")
+	if len(parts) > 1 {
+		idx = strings.Join(parts[:len(parts)-1], " ")
+		idx = strings.TrimSpace(idx)
+		idx = strings.TrimRight(idx, "<script>")
+		idx = idx + `
+		<script src="./service.js"> </script>
+		<script>
+			service();
+
+			const ui = SwaggerUIBundle({
+				url: window.location.href.replace(location.hash, "") + "swagger.json",
+				oauth2RedirectUrl: window.location.href.replace(location.hash, "") + 'oauth2-redirect.html',
+				dom_id: '#swagger-ui',
+				deepLinking: true,
+				presets: [
+					SwaggerUIBundle.presets.apis,
+					SwaggerUIStandalonePreset
+				],
+				plugins: [
+					SwaggerUIBundle.plugins.DownloadUrl
+				],
+				layout: "StandaloneLayout"
+			});
+		</script>
+  </body>
+</html>
+		`
+	}
+
+	// idx = strings.ReplaceAll(idx, `src="./`, `src="./`+staticPath)
+	idx = strings.ReplaceAll(idx, "\n", " ")
+	idx = strings.ReplaceAll(idx, "\t", " ")
+	for strings.Contains(idx, "  ") {
+		idx = strings.ReplaceAll(idx, "  ", " ")
+	}
+	idx = strings.ReplaceAll(idx, "/> ", "/>")
+	idx = strings.ReplaceAll(idx, " <", "<")
+	idx = strings.ReplaceAll(idx, " >", ">")
+
+	fmt.Println("index", idx)
+	s.index = []byte(idx)
 }
 
 func errorJSON(err error) []byte {

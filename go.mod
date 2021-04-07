@@ -1,6 +1,6 @@
 module github.com/stevepartridge/service
 
-go 1.13
+go 1.16
 
 require (
 	github.com/elazarl/go-bindata-assetfs v1.0.0
@@ -18,4 +18,5 @@ require (
 	golang.org/x/net v0.0.0-20191109021931-daa7c04131f5
 	google.golang.org/genproto v0.0.0-20191108220845-16a3f7862a1a
 	google.golang.org/grpc v1.25.1
+	gopkg.in/yaml.v2 v2.2.4
 )
