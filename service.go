@@ -81,8 +81,8 @@ func (s *Service) AddGatewayHandler(handler ...func(context.Context, *runtime.Se
 	return nil
 }
 
-// AddHttpMiddlware allows for adding middleware to http(s) specifically
-func (s *Service) AddHttpMiddlware(handler func(http.Handler) http.Handler) {
+// AddHTTPMiddleware allows for adding middleware to http(s) specifically
+func (s *Service) AddHTTPMiddleware(handler func(http.Handler) http.Handler) {
 	s.httpChain = s.httpChain.Append(handler)
 }
 
