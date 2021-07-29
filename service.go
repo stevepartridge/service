@@ -141,7 +141,7 @@ func (s *Service) Serve(ctx context.Context) error {
 		grpcPort = s.grpcPort
 	}
 
-	grpcAddr := fmt.Sprintf("127.0.0.1:%d", grpcPort)
+	grpcAddr := fmt.Sprintf("0.0.0.0:%d", grpcPort)
 
 	conn, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
@@ -154,9 +154,10 @@ func (s *Service) Serve(ctx context.Context) error {
 		go func() {
 
 			if s.disableTLSCerts {
-				fmt.Printf("Serving gRPC (No TLS) on Port: %d\n", s.grpcPort)
-				err := s.grpc.Serve(conn)
-				fmt.Println("error serving grpc: ", err.Error())
+				fmt.Printf("Serving gRPC (No TLS) on Port: %s\n", grpcAddr)
+				if err := s.grpc.Serve(conn); err != nil {
+					fmt.Println("error serving grpc: ", err.Error())
+				}
 				return
 			}
 
@@ -223,7 +224,7 @@ func (s *Service) Serve(ctx context.Context) error {
 	}
 
 	tlsConfig.Certificates = []tls.Certificate{cert}
-	tlsConfig.BuildNameToCertificate()
+	// tlsConfig.BuildNameToCertificate()
 
 	if s.grpcPort > 0 && s.grpcPort != s.port {
 
