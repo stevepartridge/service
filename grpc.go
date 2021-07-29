@@ -5,7 +5,6 @@ import (
 
 	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials"
 )
 
 func (s *Service) GRPC() *grpc.Server {
@@ -15,12 +14,6 @@ func (s *Service) GRPC() *grpc.Server {
 	}
 
 	opts := []grpc.ServerOption{}
-
-	if s.disableTLSCerts {
-		opts = append(opts, grpc.Creds(
-			credentials.NewServerTLSFromCert(s.insecureCert()),
-		))
-	}
 
 	opts = append(opts,
 		grpc.MaxRecvMsgSize(s.maxReceiveSize),
