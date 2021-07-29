@@ -1,16 +1,20 @@
 package service
 
-import (
-	"errors"
-	"fmt"
-)
+import "errors"
 
 var (
-	// ErrInvalidHost error message
-	ErrInvalidHost = errors.New("Host wasn't provided or is invalid")
-
 	// ErrInvalidPort error message
-	ErrInvalidPort = errors.New("Invalid port %d")
+	ErrInvalidPort                   = errors.New("invalid port %d")
+	ErrInvalidRecieveSize            = errors.New("invalid max recieve size %d")
+	ErrInvalidSendSize               = errors.New("invalid max send size %d")
+	ErrMissingGrpcServerOptions      = errors.New("invalid grpc server options: missing")
+	ErrMissingGrpcUnaryInterceptors  = errors.New("invalid grpc unary interceptors: missing")
+	ErrMissingGrpcStreamInterceptors = errors.New("invalid grpc stream interceptors: missing")
+	ErrMissingGatewayHandlers        = errors.New("invalid grpc gateway handlers: missing")
+	ErrWithGRPCServerIsNil           = errors.New("invalid grpc server: is nil ")
+	ErrServeGRPCNotYetDefined        = errors.New("service serve gprc not yet defined (has pb.RegisterYourServer(service.GRPC(), ...) been called?)")
+
+	ErrDisableTLSCertsMissingGRPCPort = errors.New("invalid grpc port: must set GRPC port when disabling TLS (use environment " + EnvGRPCPort + " or WithGRPCPort(port)")
 
 	// ErrAddingRootCA error message
 	ErrAddingRootCA = errors.New("Unable to add Root CA to cert pool, invalid cert.")
@@ -38,12 +42,4 @@ var (
 
 	// ErrAddKeyPairFromFilePrivateKeyNotFound error message
 	ErrAddKeyPairFromFilePrivateKeyNotFound = errors.New("Unable to add key pair, private key not found at %s")
-
-	// ErrGatewayHandlerIsNil error message
-	ErrGatewayHandlerIsNil = errors.New("Gateway entrypoint handler nil")
 )
-
-// ErrReplacer allows for static errors to have dynamic values
-func ErrReplacer(err error, replacers ...interface{}) error {
-	return fmt.Errorf(err.Error(), replacers...)
-}

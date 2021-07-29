@@ -1,111 +1,206 @@
 package service
 
 import (
+	"context"
 	"crypto/tls"
 	"crypto/x509"
 	"errors"
 	"fmt"
+	"io/ioutil"
 	"math"
 	"net"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
-	"github.com/grpc-ecosystem/grpc-gateway/runtime"
-	"golang.org/x/net/context"
+	"github.com/go-chi/chi"
+	"github.com/grpc-ecosystem/grpc-gateway/v2/runtime"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-
-	"github.com/go-chi/chi"
-	"github.com/justinas/alice"
+	"google.golang.org/grpc/grpclog"
 )
 
-// Service holds the top level settings and references
+// Defaults
+var (
+	defaultPort = 8000
+)
+
 type Service struct {
-	Port int
+	HTTP   *http.ServeMux
+	Router *chi.Mux
 
-	CertPool       *x509.CertPool
-	PublicCert     []byte
-	PrivateKey     []byte
-	enableInsecure bool
+	CertPool   *x509.CertPool
+	PublicCert []byte
+	PrivateKey []byte
 
-	Grpc            *Grpc
-	gatewayMux      *runtime.ServeMux
-	gatewayHandlers []func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error
-
-	Mux       *http.ServeMux
-	httpChain alice.Chain
-	Router    *chi.Mux
+	port int
+	grpc *grpc.Server
 
 	server *http.Server
+
+	gatewayMux *runtime.ServeMux
+	grpcPort   int // to serve grpc on a separate port
+
+	maxReceiveSize int
+	maxSendSize    int
+
+	insecureSkipVerify bool
+	disableTLSCerts    bool
+
+	httpHandlers []httpHandler
+
+	gatewayHandlers []func(context.Context, *runtime.ServeMux, *grpc.ClientConn) error
+
+	grpcServerOptions  []grpc.ServerOption
+	unaryInterceptors  []grpc.UnaryServerInterceptor
+	streamInterceptors []grpc.StreamServerInterceptor
+
+	debug bool
 }
 
-// New initiates a new Service with default settings
-func New(port int) (*Service, error) {
+type Option func(*Service) error
 
-	if port <= 0 {
-		return nil, ErrReplacer(ErrInvalidPort, port)
-	}
+func New(opts ...Option) (*Service, error) {
 
 	s := Service{
-		Port:     port,
+		port:     envInt(EnvPort),
+		HTTP:     http.NewServeMux(),
+		Router:   chi.NewMux(),
 		CertPool: x509.NewCertPool(),
 
-		Mux:        http.NewServeMux(),
-		Router:     chi.NewMux(),
 		gatewayMux: runtime.NewServeMux(),
-		httpChain:  alice.New(),
+
+		gatewayHandlers: []func(context.Context, *runtime.ServeMux, *grpc.ClientConn) error{},
+		httpHandlers:    []httpHandler{},
+
+		grpcServerOptions:  []grpc.ServerOption{},
+		unaryInterceptors:  []grpc.UnaryServerInterceptor{},
+		streamInterceptors: []grpc.StreamServerInterceptor{},
+
+		maxReceiveSize: math.MaxInt32,
+		maxSendSize:    math.MaxInt32,
+
+		grpcPort:           envInt(EnvGRPCPort),
+		insecureSkipVerify: envBool(EnvInsecureVerifySkip),
+		disableTLSCerts:    envBool(EnvTLSDisabled),
 	}
 
-	s.Grpc = &Grpc{
-		MaxReceiveSize: math.MaxInt32,
-		MaxSendSize:    math.MaxInt32,
+	if envBool(EnvDebug) {
+		opts = append(opts, WithDebug())
+	}
+
+	err := s.WithOptions(opts...)
+	if err != nil {
+		return nil, err
 	}
 
 	return &s, nil
+
 }
 
-// AddGatewayHandler allows for adding for http(s) fallbacks
-func (s *Service) AddGatewayHandler(handler ...func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error) error {
+func (s *Service) Serve(ctx context.Context) error {
 
-	if handler == nil {
-		return ErrGatewayHandlerIsNil
+	if s.debug {
+		s.PrintDebug()
+		log := grpclog.NewLoggerV2(os.Stdout, os.Stdout, ioutil.Discard)
+		grpclog.SetLoggerV2(log)
+
 	}
 
-	if s.gatewayHandlers == nil {
-		s.gatewayHandlers = []func(context.Context, *runtime.ServeMux, string, []grpc.DialOption) error{}
+	if s.port < 1 || s.port > 65535 {
+		fmt.Printf("Invalid Port %d falling back to default port %d\n", s.port, defaultPort)
+		s.port = defaultPort
 	}
 
-	s.gatewayHandlers = append(s.gatewayHandlers, handler...)
+	if s.grpcPort > 65535 {
+		fmt.Printf("Invalid GRPC Port %d falling back to primary port %d\n", s.grpcPort, s.port)
+		s.grpcPort = 0
+	}
 
-	return nil
-}
+	if s.grpc == nil {
+		return ErrServeGRPCNotYetDefined
+	}
 
-// AddHTTPMiddleware allows for adding middleware to http(s) specifically
-func (s *Service) AddHTTPMiddleware(handler func(http.Handler) http.Handler) {
-	s.httpChain = s.httpChain.Append(handler)
-}
+	if s.disableTLSCerts && s.grpcPort == 0 {
+		return ErrDisableTLSCertsMissingGRPCPort
+	}
 
-// Serve serves up everything that has been configured/defined
-func (s *Service) Serve() error {
+	cert, err := s.GetCertificate()
+	if err != nil {
+		return err
+	}
+
+	tlsConfig := tls.Config{
+		NextProtos:         []string{"h2"},
+		InsecureSkipVerify: s.insecureSkipVerify,
+	}
+
+	grpcPort := s.port
+	if s.grpcPort > 0 {
+		grpcPort = s.grpcPort
+	}
+
+	grpcAddr := fmt.Sprintf("127.0.0.1:%d", grpcPort)
+
+	conn, err := net.Listen("tcp", grpcAddr)
+	if err != nil {
+		return err
+	}
+
+	// Serving HTTP/1 and gRPC on separate ports
+	if s.grpcPort > 0 && s.grpcPort != s.port {
+
+		go func() {
+
+			if s.disableTLSCerts {
+				fmt.Printf("Serving gRPC (No TLS) on Port: %d\n", s.grpcPort)
+				err := s.grpc.Serve(conn)
+				fmt.Println("error serving grpc: ", err.Error())
+				return
+			}
+
+			fmt.Printf("Serving gRPC on Port: %d\n", s.grpcPort)
+			err := s.grpc.Serve(tls.NewListener(conn, &tlsConfig))
+			fmt.Println("error serving grpc: ", err.Error())
+
+		}()
+
+	}
 
 	if s.gatewayHandlers != nil {
 
 		opts := []grpc.DialOption{
 			grpc.WithTransportCredentials(
 				credentials.NewTLS(&tls.Config{
-					InsecureSkipVerify: true,
+					InsecureSkipVerify: true, // talk to grpc within the service at localhost/127.0.0.1
 				}),
 			),
+		}
+
+		if s.disableTLSCerts {
+			opts = []grpc.DialOption{
+				grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(s.CertPool, "")),
+				grpc.WithBlock(),
+				// grpc.WithInsecure(),
+			}
+		}
+
+		clientConn, err := grpc.DialContext(
+			context.Background(),
+			"dns:///"+grpcAddr,
+			opts...,
+		)
+		if err != nil {
+			return err
 		}
 
 		for i := range s.gatewayHandlers {
 
 			err := s.gatewayHandlers[i](
-				context.Background(),
+				ctx,
 				s.gatewayMux,
-				fmt.Sprintf("localhost:%d", s.Port),
-				opts,
+				clientConn,
 			)
 			if err != nil {
 				return err
@@ -113,78 +208,122 @@ func (s *Service) Serve() error {
 
 		}
 
-		s.Mux.Handle("/", s.gatewayMux)
+		s.HTTP.Handle("/", s.gatewayMux)
 	}
 
 	s.Router.NotFound(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.Mux.ServeHTTP(w, r)
+		s.HTTP.ServeHTTP(w, r)
 	}))
 
-	httpServer := s.httpChain.Then(s.Router)
-
-	conn, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
-	if err != nil {
-		panic(err)
-	}
-
-	tlsConfig := tls.Config{
-		NextProtos:         []string{"h2"},
-		InsecureSkipVerify: s.enableInsecure,
-	}
-
-	cert, err := s.GetCertificate()
-	if err != nil {
-		if !s.enableInsecure {
-			return err
-		}
-	}
-
-	if !s.enableInsecure {
-		tlsConfig.Certificates = []tls.Certificate{cert}
-		tlsConfig.BuildNameToCertificate()
-	}
+	s.cors()
 
 	s.server = &http.Server{
-		Addr:      strconv.Itoa(s.Port),
-		Handler:   handlerFunc(s.Grpc.Server, httpServer),
-		TLSConfig: &tlsConfig,
+		Addr:    strconv.Itoa(s.port),
+		Handler: handlerFunc(s.grpc, s.chainHandlers(s.Router)),
 	}
 
-	if s.enableInsecure {
-		return s.server.Serve(conn)
+	tlsConfig.Certificates = []tls.Certificate{cert}
+	tlsConfig.BuildNameToCertificate()
+
+	if s.grpcPort > 0 && s.grpcPort != s.port {
+
+		c, err := net.Listen("tcp", fmt.Sprintf(":%d", s.port))
+		if err != nil {
+			return err
+		}
+
+		if s.disableTLSCerts {
+			fmt.Printf("Serving HTTP on Port: %d\n", s.port)
+			return s.server.Serve(c)
+		}
+
+		fmt.Printf("Serving HTTPS on Port: %d\n", s.port)
+		return s.server.Serve(tls.NewListener(c, &tlsConfig))
 	}
 
-	return s.server.Serve(tls.NewListener(conn, s.server.TLSConfig))
-
+	fmt.Printf("Serving HTTPS and gRPC on Port: %d\n", s.port)
+	return s.server.Serve(tls.NewListener(conn, &tlsConfig))
 }
 
-// GracefulShutdown attempts to gracefully shutdown server given a context timeout
-func (s *Service) GracefulShutdown(ctx context.Context) error {
-	defer s.Grpc.Server.GracefulStop()
+// Shutdown attempts to gracefully shutdown server given a context timeout
+func (s *Service) Shutdown(ctx context.Context) error {
+	defer s.grpc.GracefulStop()
 	if s.server == nil {
-		return errors.New("Service server is nil")
+		return errors.New("service server is nil")
 	}
 	err := s.server.Shutdown(ctx)
 	if err != nil {
 		return err
 	}
 	<-ctx.Done()
-	s.Grpc.Server.Stop()
+	s.grpc.Stop()
 	return nil
 }
 
-// Shutdown will handle an immediate shutdown without concern for any pending requests
-// using GracefulShutdown is recommended
-func (s *Service) Shutdown() error {
-	if s.server == nil {
-		return errors.New("Service server is nil")
+func (s *Service) WithOptions(opts ...Option) error {
+	for _, opt := range opts {
+		if err := opt(s); err != nil {
+			return err
+		}
 	}
-	err := s.server.Shutdown(context.Background())
-	if err != nil {
-		return err
-	}
-	s.Grpc.Server.Stop()
 	return nil
+}
+
+func WithPort(port int) func(*Service) error {
+	return func(s *Service) error {
+		if port <= 0 {
+			return fmt.Errorf(ErrInvalidPort.Error(), port)
+		}
+		s.port = port
+		return nil
+	}
+}
+
+func WithDebug() func(*Service) error {
+	return func(s *Service) error {
+		s.debug = true
+		return nil
+	}
+}
+
+func (s *Service) PrintDebug() {
+	fmt.Printf(`
+=== Service Info =====================
+
+Port             : %d
+Gateway Handlers : %d
+HTTP Handlers    : %d
+
+--------------------------------------
+--- GRPC -----------------------------
+
+Port : %d
+Service Options     : %d
+Unary Interceptors  : %d
+Stream Interceptors : %d
+Max Receive Size    : %d
+Max Send Size       : %d
+
+--------------------------------------
+--- TLS ------------------------------
+
+Insecure Verify Skip : %t
+Disable TLS          : %t
+
+======================================
+`,
+		s.port,
+		len(s.gatewayHandlers),
+		len(s.httpHandlers),
+		s.grpcPort,
+		len(s.grpcServerOptions),
+		len(s.unaryInterceptors),
+		len(s.streamInterceptors),
+		s.maxReceiveSize,
+		s.maxSendSize,
+		s.insecureSkipVerify,
+		s.disableTLSCerts,
+	)
 }
 
 func handlerFunc(grpcServer *grpc.Server, httpHandler http.Handler) http.Handler {

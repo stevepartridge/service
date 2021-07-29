@@ -1,63 +1,141 @@
 package service
 
 import (
+	"fmt"
+
 	grpcMiddleware "github.com/grpc-ecosystem/go-grpc-middleware"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
 )
 
-// Grpc holds settings and server
-type Grpc struct {
-	MaxReceiveSize int
-	MaxSendSize    int
+func (s *Service) GRPC() *grpc.Server {
 
-	ServerOptions      []grpc.ServerOption
-	UnaryInterceptors  []grpc.UnaryServerInterceptor
-	StreamInterceptors []grpc.StreamServerInterceptor
-
-	Server *grpc.Server
-}
-
-// GrpcServer creates and returns the server after applying ServerOptions
-func (s *Service) GrpcServer() *grpc.Server {
-
-	options := []grpc.ServerOption{
-		grpc.MaxRecvMsgSize(s.Grpc.MaxReceiveSize),
-		grpc.MaxSendMsgSize(s.Grpc.MaxSendSize),
+	if s.grpc != nil {
+		return s.grpc
 	}
 
-	if !s.enableInsecure {
-		options = append(options, grpc.Creds(credentials.NewClientTLSFromCert(s.CertPool, "")))
+	opts := []grpc.ServerOption{}
+
+	if s.disableTLSCerts {
+		opts = append(opts, grpc.Creds(
+			credentials.NewServerTLSFromCert(s.insecureCert()),
+		))
 	}
 
-	options = append(options, s.Grpc.ServerOptions...)
+	opts = append(opts,
+		grpc.MaxRecvMsgSize(s.maxReceiveSize),
+		grpc.MaxSendMsgSize(s.maxSendSize),
+	)
 
-	options = append(options, grpc.UnaryInterceptor(
+	opts = append(opts, s.grpcServerOptions...)
+
+	opts = append(opts, grpc.UnaryInterceptor(
 		grpcMiddleware.ChainUnaryServer(
-			s.Grpc.UnaryInterceptors...,
-		)))
+			s.unaryInterceptors...,
+		),
+	))
 
-	options = append(options, grpc.StreamInterceptor(
+	opts = append(opts, grpc.StreamInterceptor(
 		grpcMiddleware.ChainStreamServer(
-			s.Grpc.StreamInterceptors...,
-		)))
+			s.streamInterceptors...,
+		),
+	))
 
-	s.Grpc.Server = grpc.NewServer(options...)
+	s.grpc = grpc.NewServer(opts...)
 
-	return s.Grpc.Server
+	return s.grpc
 }
 
-// AddUnaryInterceptors is an exposed method to append unary interceptors
-func (g *Grpc) AddUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) {
-	g.UnaryInterceptors = append(g.UnaryInterceptors, interceptors...)
+func WithGRPCPort(port int) func(*Service) error {
+	return func(s *Service) error {
+		if port <= 0 {
+			return fmt.Errorf(ErrInvalidPort.Error(), port)
+		}
+		s.grpcPort = port
+		return nil
+	}
 }
 
-// AddStreamInterceptors is an exposed method to append stream interceptors
-func (g *Grpc) AddStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) {
-	g.StreamInterceptors = append(g.StreamInterceptors, interceptors...)
+func WithMaxRecieveSize(size int) func(*Service) error {
+	return func(s *Service) error {
+		if size <= 0 {
+			return fmt.Errorf(ErrInvalidRecieveSize.Error(), size)
+		}
+		return nil
+	}
 }
 
-// AddOptions is an exposed method to append options
-func (g *Grpc) AddOptions(opts ...grpc.ServerOption) {
-	g.ServerOptions = append(g.ServerOptions, opts...)
+func WithMaxSendSize(size int) func(*Service) error {
+	return func(s *Service) error {
+		if size <= 0 {
+			return fmt.Errorf(ErrInvalidSendSize.Error(), size)
+		}
+		return nil
+	}
+}
+
+func WithGRPCServerOptions(opts ...grpc.ServerOption) func(*Service) error {
+	return func(s *Service) error {
+		if len(opts) == 0 {
+			return ErrMissingGrpcServerOptions
+		}
+
+		s.grpcServerOptions = append(s.grpcServerOptions, opts...)
+
+		return nil
+	}
+}
+
+func WithGRPCServer(server *grpc.Server) func(*Service) error {
+	return func(s *Service) error {
+		if server == nil {
+			return ErrWithGRPCServerIsNil
+		}
+		s.grpc = server
+		return nil
+	}
+}
+
+func WithUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) func(*Service) error {
+	return func(s *Service) error {
+		if len(interceptors) == 0 {
+			return ErrMissingGrpcUnaryInterceptors
+		}
+
+		s.unaryInterceptors = interceptors
+
+		return nil
+	}
+}
+
+func WithStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) func(*Service) error {
+	return func(s *Service) error {
+		if len(interceptors) == 0 {
+			return ErrMissingGrpcStreamInterceptors
+		}
+
+		s.streamInterceptors = interceptors
+
+		return nil
+	}
+}
+
+func (s *Service) AddUnaryInterceptors(interceptors ...grpc.UnaryServerInterceptor) error {
+	if len(interceptors) == 0 {
+		return ErrMissingGrpcUnaryInterceptors
+	}
+
+	s.unaryInterceptors = append(s.unaryInterceptors, interceptors...)
+
+	return nil
+}
+
+func (s *Service) AddStreamInterceptors(interceptors ...grpc.StreamServerInterceptor) error {
+	if len(interceptors) == 0 {
+		return ErrMissingGrpcStreamInterceptors
+	}
+
+	s.streamInterceptors = append(s.streamInterceptors, interceptors...)
+
+	return nil
 }

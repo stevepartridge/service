@@ -6,10 +6,13 @@ set -o pipefail
 BASE_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )/.." && pwd )"
 CUR_DIR=$(pwd)
 
-if [ ! -d $BASE_DIR/certificates ]; then
-	mkdir -p $BASE_DIR/certificates
+CERTS_DIR=$BASE_DIR/certificates
+
+if [ ! -d $CERTS_DIR ]; then
+	mkdir -p $CERTS_DIR
 fi
-cd $BASE_DIR/certificates
+
+cd $CERTS_DIR
 
 if [[ -d out && "$1" == "replace" ]]; then
   rm -Rf out
@@ -18,17 +21,34 @@ fi
 ORG="Local Development Corp. LLC. Inc."
 ORG_UNIT="Local Development"
 COMMON_NAME="host.local"
-DOMAIN="*.host.local,localhost,127.0.0.1"
+DOMAIN="*.host.local,localhost,0.0.0.0,127.0.0.1"
 EXPIRES="2 years"
 COUNTRY="US"
+PROVINCE="California" # state
+LOCALITY="San Diego" # city
 
-if [[ ! $(which certstrap) ]]; then 
+if [[ ! $(which certstrap) ]]; then
 	echo ""
-	echo "Install certstrap first, then try again"
-	echo ""
-	echo "  go get -u github.com/square/certstrap"
-	echo ""
-	exit 1
+	echo "✖ certstrap not found."
+	echo 
+	echo "  https://github.com/square/certstrap"
+  echo 
+  echo "  Unable to find certstrap to generate self-signed local development certificates."
+  echo 
+  echo "Will attempt to install..."
+  
+  brew install certstrap
+  
+  if [[ ! $(which certstrap) ]]; then
+    echo 
+    echo "  Install did not succeed, you will need to install manually."
+    echo 
+    echo "  Please visit for more info:"
+    echo "  https://github.com/square/certstrap"
+    echo 
+    exit 1
+  fi
+	
 fi
 
 echo "=== init cert authority ==="
@@ -37,8 +57,8 @@ certstrap init --common-name "${ORG} CA" \
   --organization "${ORG}" \
   --organizational-unit "${ORG_UNIT}" \
   --country "${COUNTRY}" \
-  --province "California" \
-  --locality "San Diego" \
+  --province "${PROVINCE}" \
+  --locality "${LOCALITY}" \
   --passphrase ""
   # --depot-path "$BASE_DIR/certificates"
 
@@ -49,8 +69,8 @@ certstrap request-cert --common-name "${COMMON_NAME}" \
   --organization "${ORG}" \
   --organizational-unit "${ORG_UNIT}" \
   --country "${COUNTRY}" \
-  --province "California" \
-  --locality "San Diego" \
+  --province "${PROVINCE}" \
+  --locality "${LOCALITY}" \
   --passphrase ""
 
 echo "=== sign certs ==="
@@ -58,8 +78,10 @@ certstrap sign "${COMMON_NAME}" \
   --CA "${ORG} CA" \
   --expires "${EXPIRES}" \
   --passphrase ""
-  # --intermediate 
+  # --intermediate
 echo "=== done ==="
+
+cd $CUR_DIR
 
 # mv $BASE_DIR/out $BASE_DIR/certificates
 
