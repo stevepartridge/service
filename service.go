@@ -141,7 +141,7 @@ func (s *Service) Serve(ctx context.Context) error {
 		grpcPort = s.grpcPort
 	}
 
-	grpcAddr := fmt.Sprintf("127.0.0.1:%d", grpcPort)
+	grpcAddr := fmt.Sprintf(":%d", grpcPort)
 
 	conn, err := net.Listen("tcp", grpcAddr)
 	if err != nil {
