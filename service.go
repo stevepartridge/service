@@ -180,8 +180,8 @@ func (s *Service) Serve(ctx context.Context) error {
 
 		if s.disableTLSCerts {
 			opts = []grpc.DialOption{
-				// grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(s.CertPool, "")),
-				grpc.WithInsecure(),
+				grpc.WithTransportCredentials(credentials.NewClientTLSFromCert(s.CertPool, "")),
+				// grpc.WithInsecure(),
 				grpc.WithBlock(),
 			}
 		}
