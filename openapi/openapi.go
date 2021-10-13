@@ -30,6 +30,8 @@ var (
 
 	//go:embed static/index.html
 	indexHTML []byte
+	//go:embed static/oauth2-redirect.html
+	redirectHTML []byte
 )
 
 // OpenAPI holds the basic config and mux
@@ -159,10 +161,16 @@ function service() {
 		w.WriteHeader(200)
 		w.Write(s.index)
 	})
+	redirect := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Add("Content-Type", "text/html")
+		w.WriteHeader(200)
+		w.Write(redirectHTML)
+	})
 
 	s.mux.Handle(s.Path, index)
 	s.mux.Handle(s.Path+"/", index)
 	s.mux.Handle(s.Path+"/index.html", index)
+	s.mux.Handle(s.Path+"/oauth2-redirect.html", redirect)
 
 }
 
@@ -209,14 +217,10 @@ func (s *OpenAPI) makeIndexHTML(path string, data []byte) {
 	idx = strings.ReplaceAll(idx, `href="./`, `href="./`+path+"/"+staticPath)
 	idx = strings.ReplaceAll(idx, `src="./`, `src="./`+path+"/"+staticPath)
 
-	parts := strings.Split(idx, "window.onload = function() {")
-	if len(parts) > 1 {
-		idx = strings.Join(parts[:len(parts)-1], " ")
-		idx = strings.TrimSpace(idx)
-		idx = strings.TrimRight(idx, "<script>")
-		idx = idx + `
-		<script src="./` + path + `/service.js"> </script>
-		<script>
+	injectJS := `
+	<script src="./` + path + `/service.js"> </script>
+	<script>
+		window.onload = function () {
 			service();
 
 			const ui = SwaggerUIBundle({
@@ -233,11 +237,13 @@ func (s *OpenAPI) makeIndexHTML(path string, data []byte) {
 				],
 				layout: "StandaloneLayout"
 			});
-		</script>
-  </body>
-</html>
-		`
-	}
+
+			window.ui = ui;
+		};
+	</script>
+	`
+
+	idx = strings.ReplaceAll(idx, "<!-- {{SWAGGER JS}} -->", injectJS)
 
 	idx = strings.ReplaceAll(idx, "\n", " ")
 	idx = strings.ReplaceAll(idx, "\t", " ")
