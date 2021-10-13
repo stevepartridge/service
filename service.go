@@ -141,9 +141,9 @@ func (s *Service) Serve(ctx context.Context) error {
 		grpcPort = s.grpcPort
 	}
 
-	grpcAddr := fmt.Sprintf(":%d", grpcPort)
+	// grpcAddr := fmt.Sprintf(":%d", grpcPort)
 
-	conn, err := net.Listen("tcp", grpcAddr)
+	conn, err := net.Listen("tcp", fmt.Sprintf(":%d", grpcPort))
 	if err != nil {
 		return err
 	}
@@ -188,7 +188,7 @@ func (s *Service) Serve(ctx context.Context) error {
 
 		clientConn, err := grpc.DialContext(
 			context.Background(),
-			"dns:///"+grpcAddr,
+			fmt.Sprintf("dns:///127.0.0.1:%d", grpcPort),
 			opts...,
 		)
 		if err != nil {
