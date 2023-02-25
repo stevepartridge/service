@@ -14,7 +14,7 @@ require (
 	github.com/rs/zerolog v1.16.0
 	github.com/spf13/viper v1.5.0
 	github.com/stevepartridge/go v0.0.0-20180727201657-a6caff1ec6c4
-	golang.org/x/net v0.0.0-20210405180319-a5a99cb37ef4
+	golang.org/x/net v0.7.0
 	google.golang.org/genproto v0.0.0-20210617175327-b9e0b3197ced
 	google.golang.org/grpc v1.38.0
 	gopkg.in/yaml.v2 v2.2.8
