@@ -95,6 +95,7 @@ func (s *OpenAPI) AddSecurityScheme(name string, scheme spec.SecurityScheme) {
 // Serve handles the docs, openapi.json, and server.js
 func (s *OpenAPI) Serve() {
 
+	s.makeIndexHTML(s.Path, indexHTML)
 	s.cleanSpec()
 
 	s.mux.HandleFunc(fmt.Sprintf("%s/openapi.json", s.Path), func(w http.ResponseWriter, req *http.Request) {
